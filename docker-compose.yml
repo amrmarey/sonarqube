@@ -1,15 +1,15 @@
-version: '3'
+version: '3.8'
 
 services:
   sonarqube:
     image: sonarqube:latest
     container_name: sonarqube
     ports:
-      - "9000:9000"
+      - "${SONARQUBE_PORT}:9000"  # Use the environment variable for the published port
     environment:
       SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonarqube
-      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME}
-      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD}
+      SONAR_JDBC_USERNAME_FILE: /run/secrets/db_user
+      SONAR_JDBC_PASSWORD_FILE: /run/secrets/db_password
     depends_on:
       - db
     volumes:
@@ -17,16 +17,28 @@ services:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_logs:/opt/sonarqube/logs
       - sonarqube_extensions:/opt/sonarqube/extensions
+    secrets:
+      - db_user
+      - db_password
 
   db:
     image: postgres:15
     container_name: sonarqube_db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
       POSTGRES_DB: sonarqube
     volumes:
       - postgresql_data:/var/lib/postgresql/data
+    secrets:
+      - db_user
+      - db_password
+
+secrets:
+  db_user:
+    file: db_user.txt
+  db_password:
+    file: db_password.txt
 
 volumes:
   sonarqube_conf:
