@@ -24,6 +24,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    networks:
+      - sonarnet
 
   db:
     image: postgres:15
@@ -41,6 +43,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    networks:
+      - sonarnet
 
 volumes:
   sonarqube_conf:
@@ -48,3 +52,7 @@ volumes:
   sonarqube_logs:
   sonarqube_extensions:
   postgresql_data:
+
+networks:
+  sonarnet:  # Define the dedicated network
+    driver: bridge
