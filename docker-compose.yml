@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   sonarqube:
-    image: sonarqube:community:latest  # Use the community edition of SonarQube
+    image: ssonarqube:latest  # Use the community edition of SonarQube
     container_name: sonarqube
     depends_on:
       - db  # Ensure PostgreSQL starts first
