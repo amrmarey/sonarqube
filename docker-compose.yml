@@ -1,58 +1,42 @@
-#version: '3.8'
+version: '3.8'
 
 services:
   sonarqube:
-    image: sonarqube:latest
+    image: sonarqube:community:latest  # Use the community edition of SonarQube
     container_name: sonarqube
-    user: "1001:1001"  # Run as non-root user for security
-    ports:
-      - "${SONARQUBE_PORT:-9000}:9000"  # Use environment variable for port
-    environment:
-      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonarqube
-      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME}  # Use env variable for username
-      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD}  # Use env variable for password
     depends_on:
-      - db
+      - db  # Ensure PostgreSQL starts first
+    environment:
+      - SONAR_JDBC_URL=${SONAR_JDBC_URL}  # Use environment variable from .env
+      - SONAR_JDBC_USERNAME=${SONAR_JDBC_USERNAME}
+      - SONAR_JDBC_PASSWORD=${SONAR_JDBC_PASSWORD}
     volumes:
-      - sonarqube_conf:/opt/sonarqube/conf
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_logs:/opt/sonarqube/logs
-      - sonarqube_extensions:/opt/sonarqube/extensions
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      - sonarqube_data:/opt/sonarqube/data  # Persist SonarQube data
+      - sonarqube_extensions:/opt/sonarqube/extensions  # Persist extensions
+      - sonarqube_logs:/opt/sonarqube/logs  # Persist logs
+    ports:
+      - "${SONARQUBE_PORT}:9000"  # Use environment variable from .env
     networks:
-      - sonarnet
+      - sonarnet  # Connect to the dedicated network
 
   db:
-    image: postgres:15
+    image: postgres:15  # Use the official PostgreSQL image
     container_name: sonarqube_db
-    user: "999:999"  # Run as non-root user for security
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}  # Use env variable for user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Use env variable for password
-      POSTGRES_DB: sonarqube
+      - POSTGRES_USER=${POSTGRES_USER}  # Use environment variable from .env
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - postgresql_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      - postgresql_data:/var/lib/postgresql/data  # Persist PostgreSQL data
     networks:
-      - sonarnet
+      - sonarnet  # Connect to the dedicated network
 
 volumes:
-  sonarqube_conf:
   sonarqube_data:
-  sonarqube_logs:
   sonarqube_extensions:
+  sonarqube_logs:
   postgresql_data:
 
 networks:
-  sonarnet:  # Define the dedicated network
-    driver: bridge
+  sonarnet:
+    driver: bridge  # Use a bridge network for container communication
