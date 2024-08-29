@@ -4,12 +4,13 @@ services:
   sonarqube:
     image: sonarqube:latest
     container_name: sonarqube
+    user: "1001:1001"  # Run as non-root user for security
     ports:
-      - "${SONARQUBE_PORT}:9000"  # Use the environment variable for the published port
+      - "${SONARQUBE_PORT:-9000}:9000"  # Use environment variable for port
     environment:
       SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonarqube
-      SONAR_JDBC_USERNAME_FILE: /run/secrets/db_user
-      SONAR_JDBC_PASSWORD_FILE: /run/secrets/db_password
+      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME}  # Use env variable for username
+      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD}  # Use env variable for password
     depends_on:
       - db
     volumes:
@@ -17,28 +18,29 @@ services:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_logs:/opt/sonarqube/logs
       - sonarqube_extensions:/opt/sonarqube/extensions
-    secrets:
-      - db_user
-      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   db:
     image: postgres:15
     container_name: sonarqube_db
+    user: "999:999"  # Run as non-root user for security
     environment:
-      POSTGRES_USER_FILE: /run/secrets/db_user
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_USER: ${POSTGRES_USER}  # Use env variable for user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Use env variable for password
       POSTGRES_DB: sonarqube
     volumes:
       - postgresql_data:/var/lib/postgresql/data
-    secrets:
-      - db_user
-      - db_password
-
-secrets:
-  db_user:
-    file: db_user.txt
-  db_password:
-    file: db_password.txt
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 volumes:
   sonarqube_conf:
